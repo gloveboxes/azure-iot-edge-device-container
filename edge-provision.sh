@@ -1,14 +1,5 @@
 #!/bin/bash
 
-provision(){
-echo "***Authenticating with Azure CLI***"
-az login --service-principal -u $spAppUrl -p $spPassword --tenant $tenantId
-az account set --subscription $subscriptionId
-echo "***Configuring IoT Edge Device***"
-az iot hub device-identity create --device-id $(hostname) --hub-name $iothub_name --edge-enabled
-connectionString=$(az iot hub device-identity show-connection-string --device-id $(hostname) --hub-name $iothub_name | jq -r '.connectionString')
-az iot hub device-twin update --device-id $(hostname) --hub-name $iothub_name --set tags='{"environment":"'$environment'"}'
-}
 
 startEdgeRuntime(){
 echo "***Configuring and Starting IoT Edge Runtime***"
@@ -26,7 +17,7 @@ agent:
   type: "docker"
   env: {}
   config:
-    image: "mcr.microsoft.com/azureiotedge-agent:1.0"
+    image: "mcr.microsoft.com/azureiotedge-agent:1.0.7.1"
     auth: {}
 hostname: $(cat /proc/sys/kernel/hostname)
 connect:
@@ -62,7 +53,7 @@ while (! docker stats --no-stream ); do
 done
 
 if [ -z "$connectionString" ]; then
-    echo "No connectionString provided, provisioning as a brand new IoTEdge device with name: $(hostname)"
-    provision
-fi 
-startEdgeRuntime
+    echo "A Connection string environment variable must be provided"
+else 
+  startEdgeRuntime
+fi
