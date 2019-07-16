@@ -1,14 +1,13 @@
 #!/bin/bash
 
+startEdgeRuntime() {
+  echo "***Configuring and Starting IoT Edge Runtime***"
 
-startEdgeRuntime(){
-echo "***Configuring and Starting IoT Edge Runtime***"
+  IP=$(ifconfig eth0 | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p')
 
-IP=$(ifconfig eth0 | sed -En 's/127.0.0.1//;s/.*inet (addr:)?(([0-9]*\.){3}[0-9]*).*/\2/p')
+  echo export IOTEDGE_HOST=http://$IP:15580 >>~/.bashrc
 
-echo export IOTEDGE_HOST=http://$IP:15580 >> ~/.bashrc
-
-cat <<EOF > /etc/iotedge/config.yaml
+  cat <<EOF >/etc/iotedge/config.yaml
 provisioning:
   source: "manual"
   device_connection_string: "$connectionString"
@@ -32,20 +31,18 @@ moby_runtime:
   network: "azure-iot-edge"
 EOF
 
-cat /etc/iotedge/config.yaml
-
-iotedged -c /etc/iotedge/config.yaml 
-
+  cat /etc/iotedge/config.yaml
+  iotedged -c /etc/iotedge/config.yaml
 }
 
 echo "***Starting Docker in Docker***"
 #remove docker.pid if it exists to allow Docker to restart if the container was previously stopped
 if [ -f /var/run/docker.pid ]; then
-    echo "Stale docker.pid found in /var/run/docker.pid, removing..."
-    rm /var/run/docker.pid
+  echo "Stale docker.pid found in /var/run/docker.pid, removing..."
+  rm /var/run/docker.pid
 fi
 
-while (! docker stats --no-stream ); do
+while (! docker stats --no-stream); do
   # Docker takes a few seconds to initialize
   dockerd --host=unix:///var/run/docker.sock --host=tcp://0.0.0.0:2375 &
   echo "Waiting for Docker to launch..."
@@ -53,7 +50,7 @@ while (! docker stats --no-stream ); do
 done
 
 if [ -z "$connectionString" ]; then
-    echo "A Connection string environment variable must be provided"
-else 
+  echo "A Connection string environment variable must be provided"
+else
   startEdgeRuntime
 fi
